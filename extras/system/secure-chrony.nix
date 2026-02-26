@@ -17,6 +17,7 @@
 {
   l,
   pkgs,
+  config,
   cfg,
   ...
 }:
@@ -30,6 +31,23 @@
   };
 
   config = l.mkIf cfg {
+    assertions = [
+      {
+        assertion =
+          !(
+            config.environment.memoryAllocator.provider == "scudo"
+            && l.elem "-F 1" config.services.chrony.extraFlags
+          );
+        message = ''
+          nix-mineral secure-chrony: chronyd cannot start when both the scudo
+          memory allocator and the seccomp filter (-F 1) are active at the same
+          time. Either disable the scudo allocator
+          (environment.memoryAllocator.provider) or remove "-F 1" from
+          services.chrony.extraFlags.
+        '';
+      }
+    ];
+
     services.timesyncd = {
       enable = l.mkDefault false;
     };
